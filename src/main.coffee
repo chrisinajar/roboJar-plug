@@ -17,7 +17,10 @@ class RoboJar
 
 		@bot.on 'chat', @chat
 	chat: (data)=>
-		@prompt.log(@prompt.clc.blue(data.from+": ") + data.message)
+		if (data.type == "emote")
+			@prompt.log @prompt.clc.blackBright(data.from + data.message)
+		else
+			@prompt.log @prompt.clc.blue(data.from+": ") + data.message
 
 	connect: =>
 		@bot.connect 'coding-soundtrack'
