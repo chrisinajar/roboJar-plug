@@ -1,0 +1,15 @@
+{
+	"name": "roboJar",
+	"version": "0.0.0",
+	"author": "Chris Vickery <chrisinajar@gmail.com>",
+	"description": "roboJar, a modular bot for managing coding soundtrack on plugdj",
+	"dependencies": {
+		"coffee-script": "*",
+		"plugapi": "*",
+		"cli-color": "*"
+	},
+	"license": "freeBSD",
+	"engines": {
+		"node": ">=0.6"
+	}
+}
