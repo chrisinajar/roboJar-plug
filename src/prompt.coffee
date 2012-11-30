@@ -21,14 +21,12 @@ class Prompt extends EventEmitter
 			@_write msg
 			@println()
 			msg = msg.trim()
-			if msg.length > 0 
-				@emit 'line', msg
-
-			
 			@prompt()
 			@resume()
 
-			
+			if msg.length > 0 
+				@emit 'line', msg
+
 		@prompt()
 
 

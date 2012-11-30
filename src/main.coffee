@@ -4,10 +4,23 @@ EventEmitter = require('events').EventEmitter
 Prompt = require './prompt'
 UserCache = require './usercache'
 vm = require 'vm'
+domain = require 'domain'
 
 class RoboJar
 	constructor: (key)->
+		#module stuff
+		@eventProxies = {}
+		@domains = {}
+
+		@prompt = new Prompt()
+		@prompt.setStatusLines [@prompt.clc.blackBright("Not connected")]
+
 		@bot = new PlugAPI key
+		@bot._emit = @bot.emit
+		@bot.emit = =>
+			@proxyEvent arguments
+			@bot._emit.apply(@bot, arguments)
+
 		@bot.on 'error', @connect
 		@bot.on 'close', @connect
 
@@ -15,8 +28,6 @@ class RoboJar
 			@prompt.setStatusLines [@prompt.clc.red("Error!")]
 		@bot.on 'close', =>
 			@prompt.setStatusLines [@prompt.clc.blackBright("Not connected")]
-		@prompt = new Prompt()
-		@prompt.setStatusLines [@prompt.clc.blackBright("Not connected")]
 		@bot.setLogObject(@prompt)
 
 		@prompt.on 'line', (msg)=>
@@ -37,15 +48,35 @@ class RoboJar
 			@currentSong = data.media
 			@setStatusLines()
 		@bot.on 'roomChanged', (data)=>
-			@userCache = new UserCache(data.room.users, @prompt, @bot)
+			@userCache = new UserCache(data.room.users, @prompt, @getEventProxy("usercache"))
+			@userCache.on 'changed', @setStatusLines
 			@room = data.room
 			@currentSong = data.room.media
 			@setStatusLines()
 
+	proxyEvent: (event)->
+		for name, emitter of @eventProxies
+			emitter.emit.apply emitter, event
+	getEventProxy: (name)->
+		if (@eventProxies[name])
+			return @eventProxies[name]
 
-	setStatusLines: ->
+		@eventProxies[name] = new EventEmitter()
+		@getDomain(name).add @eventProxies[name]
+
+		return @eventProxies[name]
+
+	getDomain: (name)->
+		if (@domains[name])
+			return @domains[name]
+		d = @domains[name] = domain.create()
+		d.on 'error', (er)=>
+			@prompt.log er
+		return @domains[name]
+
+	setStatusLines: =>
 		@prompt.setStatusLines [
-			@prompt.clc.green("Connected!") + " " + @prompt.clc.bold("#{ @room.name }") + ", " + @prompt.clc.yellowBright("#{ @room.users.length }") + " users.",
+			@prompt.clc.green("Connected!") + " " + @prompt.clc.bold("#{ @room.name }") + ", " + @prompt.clc.yellowBright(@userCache.count()) + " users.",
 			"Current song: #{ @currentSong.title } by #{ @currentSong.author }"
 			]
 
@@ -66,7 +97,15 @@ class RoboJar
 					@prompt.log result
 				catch e
 					@prompt.log e
-				
+			when "l"
+				args = args.trim()
+				if (args == "usercache")
+					@prompt.setStatusLines [@prompt.clc.yellow("Joining room...")]
+					delete require.cache[require.resolve("./usercache")]
+					delete @eventProxies["usercache"]
+					delete @domains["usercache"]
+					UserCache = require './usercache'
+					@bot.joinRoom "coding-soundtrack"
 
 	chat: (data)=>
 		if (data.type == "emote")
@@ -83,5 +122,6 @@ scope =
 	bot: bot
 	roboJar: roboJar
 	prompt: bot.prompt
+	require: require
 
 context = vm.createContext scope
