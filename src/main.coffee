@@ -34,7 +34,6 @@ class RoboJar
 		@bot.on 'connected', =>
 			@prompt.setStatusLines [@prompt.clc.yellow("Joining room...")]
 		@bot.on 'djAdvance', (data)=>
-			@prompt.log data
 			@currentSong = data.media
 			@setStatusLines()
 		@bot.on 'roomChanged', (data)=>
@@ -42,10 +41,6 @@ class RoboJar
 			@room = data.room
 			@currentSong = data.room.media
 			@setStatusLines()
-		@bot.on 'userJoin', (data)=>
-			#@prompt.log 'join', data
-		@bot.on 'userLeave', (data)=>
-			#@prompt.log 'leave', data
 
 
 	setStatusLines: ->
