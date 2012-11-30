@@ -37,7 +37,7 @@ class RoboJar
 			@currentSong = data.media
 			@setStatusLines()
 		@bot.on 'roomChanged', (data)=>
-			@userCache = new UserCache(data.room.users, @prompt)
+			@userCache = new UserCache(data.room.users, @prompt, @bot)
 			@room = data.room
 			@currentSong = data.room.media
 			@setStatusLines()
