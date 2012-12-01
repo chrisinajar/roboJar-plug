@@ -8,6 +8,12 @@ class UserCache extends EventEmitter
 		@bot.on 'userLeave', (data)=>
 			@userLeave data
 
+		@bot.on 'chat', (data)=>
+			@cache?.updateChatIdle data.fromID
+
+#		@bot.on 'chat', (data)=>
+#			@cache?.updateChatIdle data.id
+
 		@seedData data
 		#@logger.log data
 
@@ -44,9 +50,9 @@ class HashCache
 			chat: (new Date).getTime()
 			vote: (new Date).getTime()
 	updateChatIdle: (userid)->
-		getUser(userid).idle.chat = (new Date).getTime()
+		@getUser(userid).idle.chat = (new Date).getTime()
 	updateVoteIdle: (userid)->
-		getUser(userid).idle.vote = (new Date).getTime()
+		@getUser(userid).idle.vote = (new Date).getTime()
 	removeUser: (userid)->
 		delete @hash[userid]
 	getUser: (userid)->

@@ -3,6 +3,7 @@ PlugAPI = require 'plugapi'
 EventEmitter = require('events').EventEmitter
 Prompt = require './prompt'
 UserCache = require './usercache'
+ModuleManager = require './modulemanager'
 vm = require 'vm'
 domain = require 'domain'
 
@@ -15,10 +16,12 @@ class RoboJar
 		@prompt = new Prompt()
 		@prompt.setStatusLines [@prompt.clc.blackBright("Not connected")]
 
+		@module = new ModuleManager @prompt, @
+
 		@bot = new PlugAPI key
 		@bot._emit = @bot.emit
 		@bot.emit = =>
-			@proxyEvent arguments
+			@module.proxyEvent arguments
 			@bot._emit.apply(@bot, arguments)
 
 		@bot.on 'error', @connect
@@ -48,31 +51,11 @@ class RoboJar
 			@currentSong = data.media
 			@setStatusLines()
 		@bot.on 'roomChanged', (data)=>
-			@userCache = new UserCache(data.room.users, @prompt, @getEventProxy("usercache"))
+			@userCache = new UserCache(data.room.users, @prompt, @module.getEventProxy("usercache"))
 			@userCache.on 'changed', @setStatusLines
 			@room = data.room
 			@currentSong = data.room.media
 			@setStatusLines()
-
-	proxyEvent: (event)->
-		for name, emitter of @eventProxies
-			emitter.emit.apply emitter, event
-	getEventProxy: (name)->
-		if (@eventProxies[name])
-			return @eventProxies[name]
-
-		@eventProxies[name] = new EventEmitter()
-		@getDomain(name).add @eventProxies[name]
-
-		return @eventProxies[name]
-
-	getDomain: (name)->
-		if (@domains[name])
-			return @domains[name]
-		d = @domains[name] = domain.create()
-		d.on 'error', (er)=>
-			@prompt.log er
-		return @domains[name]
 
 	setStatusLines: =>
 		@prompt.setStatusLines [
@@ -106,6 +89,8 @@ class RoboJar
 					delete @domains["usercache"]
 					UserCache = require './usercache'
 					@bot.joinRoom "coding-soundtrack"
+				else
+					@module.loadModule args
 
 	chat: (data)=>
 		if (data.type == "emote")
